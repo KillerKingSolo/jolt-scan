@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.1 - 2026-11-02
+
+Why update: the repo page now shows what the app does. The app itself is unchanged.
+
+- README with screenshots, a how-it-works diagram (light and dark), badges, features and how it works.
+- Issue templates for bugs and wrong results.
+- SECURITY.md: how to report a problem and what the app sends over the network.
+
 ## 1.0.0 - 2026-11-02
 
 Why update: first public release.
