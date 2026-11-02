@@ -88,6 +88,19 @@ offset comes from Java Random seeded with `tick × 312871`. At low health the he
 fits only a few ticks, and the run of jolts across a video gives game uptime frame by frame. The GUI tick counts from
 game launch and never resets, so a jump up in the line means footage was removed.
 
+## Star history
+
+**If Jolt Scan helps you, please give it a star.** It is free and takes one click. Stars show me that people are
+using it, help others find it, and keep me motivated to fix problems and add new features.
+
+<a href="https://www.star-history.com/#KillerKingSolo/jolt-scan&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=KillerKingSolo/jolt-scan&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=KillerKingSolo/jolt-scan&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=KillerKingSolo/jolt-scan&type=Date" />
+ </picture>
+</a>
+
 ## Credits
 
 - [Jolt Cracker](https://dartjs.com/joltcracker): the jolt cracking method and the site that the chart and cracker in

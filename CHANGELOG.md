@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 - 2026-11-02
+
+Why update: the repo page now shows star history. The app itself is unchanged.
+
+- README: star history chart (light and dark).
+
 ## 1.0.1 - 2026-11-02
 
 Why update: the repo page now shows what the app does. The app itself is unchanged.
