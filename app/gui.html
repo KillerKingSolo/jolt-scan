@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jolt Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen&display=swap">
+<style>
+/* Layout: work column beside a sticky video column; one dark console look like the cracker site */
+:root {
+  --bg: #07111e; --panel: #0b1829; --raised: #102035; --line: #234463; --line-hi: #3d6d96; --grid: #13263c;
+  --fg: #d7e7fb; --muted: #8aa4c2; --accent: #c6f04d; --accent-ink: #0a1505;
+  --up: #6fd3ff; --down: #ff8f8f; --lh: #ff6b6b; --menu: #f5b84a; --ok: #c6f04d; --play: #ffffff;
+  --hidden: #ff6bd5; --visible: #6fd3ff;
+  --display: "Silkscreen", "Courier New", monospace;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.5 var(--body); margin: 0; }
+.wrap { max-width: 1600px; margin: 0 auto; padding: 18px 16px 64px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.brand { display: flex; gap: 14px; align-items: baseline; min-width: 0; flex-wrap: wrap; }
+h1 { font: 400 22px/1.1 var(--display); letter-spacing: .04em; margin: 0; color: var(--accent); cursor: pointer; }
+h2 { font: 400 14px/1.2 var(--display); letter-spacing: .08em; margin: 0; text-transform: uppercase; color: var(--muted); }
+.sub { color: var(--muted); margin: 0; min-width: 0; overflow-wrap: anywhere; }
+a { color: var(--up); }
+.main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 580px); gap: 16px; align-items: start; }
+.col { display: grid; gap: 16px; min-width: 0; }
+.videocol { position: sticky; top: 12px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row.between { justify-content: space-between; }
+.label { font: 600 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+button, .btn { font: inherit; font-size: 13px; color: var(--fg); background: var(--raised); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; padding: 6px 10px; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; white-space: nowrap; }
+button:hover, .btn:hover { border-color: var(--line-hi); }
+button:disabled { opacity: .45; cursor: default; }
+button:focus-visible, input:focus-visible, select:focus-visible, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.primary:hover { filter: brightness(1.08); border-color: var(--accent); }
+.big { padding: 11px 16px; font-size: 15px; }
+input[type=text], input[type=number], select, textarea { font: 500 15px/1.2 var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 9px 11px; min-width: 0; }
+input[type=text] { width: 100%; }
+input.small, select.small { font-size: 13px; padding: 6px 8px; width: 110px; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.err { color: var(--down); font-size: 13px; margin: 0; }
+.warn { color: var(--menu); font-size: 13px; margin: 0; }
+code { font-family: var(--mono); font-size: .92em; }
+.progress { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; border: 1px solid var(--line); }
+.progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
+.badge { font: 600 11px/1 var(--mono); padding: 4px 7px; border-radius: 99px; border: 1px solid var(--line-hi); color: var(--muted); white-space: nowrap; }
+.badge.done { color: var(--ok); border-color: var(--ok); }
+.badge.work { color: var(--menu); border-color: var(--menu); }
+
+/* home */
+.newscan { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; }
+.projects { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.pcard { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 8px; cursor: pointer; min-width: 0; }
+.pcard:hover { border-color: var(--line-hi); }
+.pcard b { font-weight: 600; overflow-wrap: anywhere; }
+.pcard .meta { font: 12px var(--mono); color: var(--muted); }
+.badge.qual { color: var(--accent); border-color: var(--accent); }
+.cardmenu { width: 240px; }
+.cardmenu button { justify-content: flex-start; }
+#backHome { margin-right: 4px; }
+
+/* setup */
+.trimbar { position: relative; height: 34px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; touch-action: none; }
+.trimbar .keep { position: absolute; top: 0; bottom: 0; background: #1d3a1a; border-left: 3px solid var(--accent); border-right: 3px solid var(--accent); }
+.hudstrip { width: 100%; height: 10px; display: block; border-radius: 3px; background: var(--bg); }
+.stage.picking, .stage.picking * { cursor: crosshair; }
+.suggest { font: 600 11px/1 var(--mono); padding: 5px 8px; border-radius: 99px; border: 1px dashed var(--line-hi); background: transparent; color: var(--muted); margin-left: 6px; }
+.suggest:hover { color: var(--fg); border-color: var(--accent); }
+.trimbar .head { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--play); pointer-events: none; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.field { display: grid; gap: 5px; min-width: 0; }
+.field .row { flex-wrap: nowrap; }
+.steps { display: grid; gap: 6px; font-size: 13px; color: var(--muted); padding-left: 18px; margin: 0; }
+
+/* cracker */
+.cracker { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; }
+.editor, .side { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.board { display: flex; gap: 10px; align-items: center; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+.lh { width: 48px; height: 42px; font: 600 14px var(--mono); justify-content: center; padding: 0; }
+.lh[aria-pressed=true] { background: var(--lh); color: #1a0505; border-color: var(--lh); }
+.slots { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 3px; flex: 1; min-width: 0; }
+.slot { display: grid; gap: 3px; justify-items: center; }
+.slot button { width: 100%; max-width: 32px; height: 20px; font-size: 10px; padding: 0; justify-content: center; }
+.slot button.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.slot .icon { width: 27px; height: 27px; max-width: 100%; image-rendering: pixelated; display: block; }
+.slot span { display: block; transition: transform .06s; }
+.foodrow { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; font: 12px var(--mono); color: var(--muted); }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+#food { direction: rtl; }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.tabs button { border: 0; border-radius: 0; padding: 8px; background: var(--bg); justify-content: center; }
+.tabs button[aria-selected=true] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.matches { display: flex; flex-wrap: wrap; gap: 6px; }
+.match { font: 500 13px var(--mono); padding: 6px 9px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-variant-numeric: tabular-nums; }
+.match.fit { border-color: var(--accent); color: var(--accent); }
+
+/* stats + chart */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.stat { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--bg); min-width: 0; }
+.stat b { display: block; font: 600 20px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; font: 12px var(--mono); color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.chartbox { position: relative; }
+canvas#chart { width: 100%; height: 400px; display: block; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; cursor: grab; touch-action: pan-y; }
+canvas#chart.dragging { cursor: grabbing; }
+canvas#chart.onhead, canvas#chart.scrubbing { cursor: ew-resize; }
+.jumpedit { position: fixed; z-index: 10; background: var(--raised); border: 1px solid var(--line-hi); border-radius: 8px; padding: 10px; display: grid; gap: 8px; width: 220px; box-shadow: 0 10px 30px #0008; }
+.jumpedit input { width: 100%; }
+.tip { position: absolute; pointer-events: none; background: var(--raised); border: 1px solid var(--line-hi); border-radius: 6px; padding: 6px 8px; font: 12px/1.4 var(--mono); white-space: nowrap; z-index: 2; }
+.zoomtxt { font: 12px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* video */
+.stage { position: relative; aspect-ratio: 16 / 9; max-width: 100%; background: #000; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.zoomer { position: absolute; inset: 0; }
+.zoomer video, .zoomer canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.zoomer canvas { pointer-events: none; }
+.vclock { font: 600 15px var(--mono); font-variant-numeric: tabular-nums; }
+.vclock span { color: var(--muted); font-weight: 400; font-size: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); }
+.card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--bg); display: grid; gap: 4px; font: 13px/1.5 var(--mono); }
+.card b { color: var(--accent); font-weight: 600; }
+
+/* cut log */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.tablebox { overflow: auto; max-height: 560px; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 13px; }
+th { text-align: left; font: 600 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); background: var(--raised); position: sticky; top: 0; z-index: 1; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--raised); }
+tbody tr.sel { background: #16304d; box-shadow: inset 3px 0 0 var(--accent); }
+tbody tr.flash { animation: flash 1.2s ease-out; }
+@keyframes flash { 0%, 30% { background: #2f5a1f; } 100% { background: #16304d; } }
+@media (prefers-reduced-motion: reduce) { tbody tr.flash { animation: none; } }
+.pill { font: 600 11px/1 var(--mono); padding: 5px 8px; border-radius: 99px; white-space: nowrap; border: 1px solid; background: transparent; }
+.s-hidden { color: var(--hidden); border-color: var(--hidden); }
+.s-visible { color: var(--visible); border-color: var(--visible); }
+.s-menu { color: var(--menu); border-color: var(--menu); }
+.s-notcut { color: var(--muted); border-color: var(--muted); }
+.s-unsure { color: var(--down); border-color: var(--down); border-style: dashed; }
+.s-unchecked { color: var(--muted); border-color: var(--line-hi); border-style: dashed; }
+.s-pause { color: var(--muted); border-color: var(--muted); border-style: dotted; }
+.note { color: var(--muted); }
+.det { font: 12px var(--mono); color: var(--muted); white-space: nowrap; }
+.update { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; justify-content: space-between; background: #142a12; border: 1px solid var(--accent); border-radius: 10px; padding: 10px 14px; }
+.update.bad { background: #2a1414; border-color: var(--down); }
+.update p { margin: 0; min-width: 0; }
+.update .hint { display: block; }
+.pop { position: fixed; z-index: 10; background: var(--raised); border: 1px solid var(--line-hi); border-radius: 8px; padding: 10px; display: grid; gap: 8px; width: 270px; box-shadow: 0 10px 30px #0008; }
+.pop .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pop .opts button { justify-content: center; }
+.pop textarea { width: 100%; height: 60px; font-size: 13px; resize: vertical; }
+
+@media (max-width: 1180px) { .main { grid-template-columns: minmax(0, 1fr); } .videocol { position: static; order: -1; } }
+@media (max-width: 640px) { .cracker, .newscan, .grid2 { grid-template-columns: 1fr; } .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } canvas#chart { height: 300px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="update" id="updBanner" hidden aria-live="polite">
+    <p id="updText"></p>
+    <div class="row" id="updBtns"></div>
+  </section>
+  <header>
+    <div class="brand">
+      <button id="backHome" hidden>← Projects</button>
+      <h1 id="home">Jolt Scan</h1>
+      <p class="sub" id="crumb"></p>
+    </div>
+    <div class="row" id="ptools" hidden>
+      <button id="setupBtn">Change trim or HUD</button>
+      <label class="btn" for="importFile">Import jolts</label>
+      <input type="file" id="importFile" accept=".csv,.json" multiple hidden>
+      <button id="backImported" hidden>Back to this project's scan</button>
+      <a class="btn" id="expCsv" download>Export CSV</a>
+      <a class="btn" id="expHtml" download>Export report</a>
+      <button id="delVideo" title="Removes the video file but keeps the scan">Delete video</button>
+      <button id="reDownload" hidden>Download video again</button>
+      <button id="delProject">Delete project</button>
+    </div>
+  </header>
+
+  <!-- home -->
+  <div id="vHome" class="col" hidden>
+    <section class="panel">
+      <h2>New scan</h2>
+      <div class="newscan">
+        <input type="text" id="ytUrl" placeholder="Paste a YouTube link" spellcheck="false" autocomplete="off">
+        <select id="ytQ" class="small" aria-label="Download quality" style="width:auto">
+          <option value="720">720p</option><option value="1080">1080p</option><option value="1440">1440p (2K)</option><option value="2160" selected>2160p (4K)</option>
+        </select>
+        <button class="primary" id="ytGo">Download and scan</button>
+      </div>
+      <div class="row">
+        <label class="btn" for="upFile">Or open a video file</label>
+        <input type="file" id="upFile" accept="video/*,.mp4,.mkv,.webm,.mov" hidden>
+        <span class="hint">Videos are saved in the app's <code>projects</code> folder. Higher quality finds more jolts but takes longer.</span>
+      </div>
+      <div class="progress" id="upBar" hidden><i></i></div>
+      <p class="err" id="homeErr" hidden></p>
+    </section>
+    <section class="panel">
+      <h2>Projects</h2>
+      <div class="projects" id="plist"></div>
+    </section>
+  </div>
+
+  <!-- project -->
+  <div id="vProject" class="main" hidden>
+    <div class="col">
+      <section class="panel" id="workPanel" hidden>
+        <div class="row between"><h2>Working</h2><span class="zoomtxt" id="workPct"></span></div>
+        <div id="workStep"></div>
+        <div class="progress"><i id="workBar"></i></div>
+        <p class="err" id="workErr" hidden></p>
+        <p class="hint">You can close this tab. The app keeps working while its window is open.</p>
+      </section>
+
+      <section class="panel" id="setupPanel" hidden>
+        <h2>Set up the scan</h2>
+        <div class="field">
+          <span class="label">Trim</span>
+          <div class="trimbar" id="trimbar" title="Drag the green edges to trim. Click to move the video."><div class="keep" id="trimKeep"></div><div class="head" id="trimHead"></div></div>
+          <canvas id="hudStrip" class="hudstrip" aria-label="Where the HUD is visible: green yes, red no"></canvas>
+          <div class="row between"><p id="trimMsg" class="hint"></p><button id="useSuggest" hidden>Use suggested trim</button></div>
+          <div class="grid2">
+            <div class="field"><span class="hint">Start</span><div class="row"><input class="small" id="trimA" spellcheck="false"><button id="setA">Set to video time</button></div></div>
+            <div class="field"><span class="hint">End</span><div class="row"><input class="small" id="trimB" spellcheck="false"><button id="setB">Set to video time</button></div></div>
+          </div>
+          <p class="hint">Cut off intros, outros and other players' footage. Only the part between start and end is scanned.</p>
+        </div>
+        <div class="field">
+          <div class="row between"><span class="label">HUD position</span><div class="row"><button id="pickHud">Pick on the video</button><button id="checkHud">Check these numbers</button><button id="findHud">Find again</button></div></div>
+          <p id="pickMsg" class="warn" hidden></p>
+          <p id="hudMsg" class="hint"></p>
+          <div class="grid2">
+            <div class="field"><span class="hint">Scale (video pixels per GUI pixel)</span><input type="number" class="small" id="hudS" step="0.01" min="0.5"></div>
+            <div class="field"><span class="hint">Hotbar center x</span><input type="number" class="small" id="hudX" step="0.5"></div>
+            <div class="field"><span class="hint">Bar top y</span><input type="number" class="small" id="hudY" step="0.5"></div>
+            <div class="field"><span class="hint">Check</span><span class="hint">The boxes over the video must sit on the hearts and the hunger icons. Use HUD zoom to check closely.</span></div>
+          </div>
+        </div>
+        <div class="row"><button class="primary big" id="goAnalyze">Scan this part</button><button id="cancelSetup" hidden>Cancel</button></div>
+        <ol class="steps"><li>Crop the HUD and find scene changes and open menus</li><li>Read every jolt and the health bar, then crack each jolt</li><li>Line the jolts up and list every jump in game time</li></ol>
+      </section>
+
+      <div id="results" class="col" hidden>
+        <p class="warn" id="importNote" hidden></p>
+        <section class="panel" aria-labelledby="sc">
+          <div class="row between">
+            <h2 id="sc">Uptime</h2>
+            <div class="row">
+              <span class="zoomtxt" id="zoomTxt"></span>
+              <button id="toPlayhead" title="Center the chart on the video position">Go to video position</button>
+              <button id="zoomOut" aria-label="Zoom out">−</button>
+              <button id="zoomIn" aria-label="Zoom in">+</button>
+              <button id="zoomAll">Whole scan</button>
+            </div>
+          </div>
+          <div class="stats" id="stats"></div>
+          <div class="legend">
+            <span><i style="background:var(--accent)"></i>jolt</span>
+            <span><i style="background:var(--lh)"></i>low-health jolt</span>
+            <span><i style="background:var(--menu);opacity:.4"></i>menu open</span>
+            <span><i style="background:var(--hidden);height:2px"></i>hidden cut</span>
+            <span><i style="background:var(--visible);height:2px"></i>visible cut</span>
+            <span><i style="background:var(--play);height:2px"></i>video position</span>
+          </div>
+          <div class="chartbox">
+            <canvas id="chart" aria-label="Game uptime against video time"></canvas>
+            <div class="tip" id="tip" hidden></div>
+          </div>
+          <div class="card" id="gapCard" hidden></div>
+          <p class="hint">Game uptime against video time. Uncut footage is a straight diagonal line; a jump up is removed footage, a drop is a pause or relaunch. Scroll to zoom, drag to move, double-click for the whole scan. Click a jolt to jump the video to its frame. Hover between two jolts to see how much game time passed; click to pin it.</p>
+        </section>
+
+        <section class="panel" aria-labelledby="cl">
+          <h2 id="cl">Jumps in game time</h2>
+          <div class="chips" id="chips"></div>
+          <div class="tablebox">
+            <table>
+              <thead><tr><th>Video time</th><th>Removed</th><th>Jolts</th><th>Detector</th><th>Status</th><th>Notes</th></tr></thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <p class="hint">Click a row to zoom to it and jump the video to the last jolt before it. Click the status to mark the jump; marks are saved in the project. Jolts is the count of agreeing jolts before and after. Detector shows the largest scene-change score in the gap (8 or more usually means a visible cut, but opening a menu also scores high).</p>
+        </section>
+
+        <section class="panel" aria-labelledby="ck">
+          <h2 id="ck">Cracker</h2>
+          <div class="cracker">
+            <div class="editor">
+              <label class="label" for="code">Jolt code</label>
+              <input type="text" id="code" value="20 00--+00+0-" spellcheck="false" autocomplete="off">
+              <div class="board">
+                <button class="lh" id="lh" aria-pressed="false" title="Low health: 2 hearts or less">LH</button>
+                <div class="slots" id="slots"></div>
+              </div>
+              <div class="foodrow"><span>20</span><input type="range" id="food" min="0" max="20" value="20" aria-label="Food level"><span id="foodv">food 20</span></div>
+              <p class="hint">Slot 1 is the leftmost icon. Up is <b>+</b>, down is <b>-</b>. Add H after the food level for low health, for example <code>6H 0----00+-+</code>.</p>
+            </div>
+            <div class="side">
+              <div class="tabs" role="tablist">
+                <button role="tab" id="mUntil" aria-selected="true">Until</button>
+                <button role="tab" id="mFirst" aria-selected="false">First</button>
+              </div>
+              <label class="label" for="bound">Upper bound</label>
+              <input type="text" id="bound" value="08:00:00|00" spellcheck="false">
+              <button class="primary big" id="crackBtn">Crack</button>
+            </div>
+          </div>
+          <div id="cres" hidden>
+            <div class="row between"><span class="zoomtxt" id="rcount"></span><span class="zoomtxt" id="rscan"></span></div>
+            <p class="hint" id="rctx" hidden style="color:var(--accent)"></p>
+            <div class="matches" id="matches"></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="col videocol">
+      <section class="panel" aria-labelledby="vd">
+        <div class="row between">
+          <h2 id="vd">Video</h2>
+          <div class="row"><label class="row hint"><input type="checkbox" id="showBoxes"> HUD boxes</label><a class="btn" id="ytLink" target="_blank" rel="noopener" hidden>YouTube at this time</a></div>
+        </div>
+        <div class="stage" id="stage">
+          <div class="zoomer" id="zoomer"><video id="vid" preload="auto" playsinline></video><canvas id="overlay"></canvas></div>
+        </div>
+        <p class="err" id="vErr" hidden></p>
+        <div class="row between">
+          <div class="vclock" id="vclock">0:00.00 <span>frame 0</span></div>
+          <div class="row">
+            <button class="jump" data-pair="big" data-dir="-1" title="Right-click to change">−10 s</button>
+            <button class="jump" data-pair="small" data-dir="-1" title="Right-click to change">−1 s</button>
+            <button id="bBackF" aria-label="Back 1 frame">◀ frame</button>
+            <button id="bPlay">Play</button>
+            <button id="bFwdF" aria-label="Forward 1 frame">frame ▶</button>
+            <button class="jump" data-pair="small" data-dir="1" title="Right-click to change">+1 s</button>
+            <button class="jump" data-pair="big" data-dir="1" title="Right-click to change">+10 s</button>
+          </div>
+        </div>
+        <input type="range" id="scrub" min="0" max="1000" step="1" value="0" aria-label="Video position">
+        <div class="row between">
+          <div class="row">
+            <span class="label">Zoom</span>
+            <div class="seg" id="focus">
+              <button data-f="full" aria-pressed="true">Full</button>
+              <button data-f="hearts" aria-pressed="false">Hearts</button>
+              <button data-f="hud" aria-pressed="false">HUD</button>
+              <button data-f="hunger" aria-pressed="false">Hunger</button>
+            </div>
+          </div>
+          <input type="range" id="vzoom" min="1" max="10" step="0.5" value="1" aria-label="Video zoom" style="max-width:170px">
+        </div>
+        <div class="card" id="jcard"><span class="hint">Click a jolt on the chart to see it here.</span></div>
+        <p class="hint">Right-click a jump button to change its seconds. Keys: comma and period step one frame, left and right arrows jump by the inner amount (with Shift, the outer amount), space plays and pauses, J and L go to the previous and next jolt. Drag the white playhead on the chart to scrub.</p>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="pop" id="pop" hidden></div>
+
+<script>
+// ---------- helpers ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const vtime = sec => { sec = Math.max(0, sec); const h = Math.floor(sec / 3600), m = Math.floor(sec / 60) % 60, s = (sec % 60).toFixed(2).padStart(5, "0"); return h ? `${h}:${String(m).padStart(2, "0")}:${s}` : `${m}:${s}`; };
+const hms = t => { const s = Math.floor(t / 20); return `${Math.floor(s / 3600)}:${String(Math.floor(s / 60) % 60).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
+const parseTime = s => { const p = String(s).trim().split(":").map(Number); if (p.some(isNaN)) return null; return p.reduce((a, v) => a * 60 + v, 0); };
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+// ---------- cracker core: Java Random on 48 bits as two exact 24-bit halves ----------
+const M_HI = 0x5DE, M_LO = 0xECE66D, B24 = 16777216;
+function rng(tick) {
+  const s = Math.imul(tick, 312871);
+  const low48 = s >= 0 ? s : s + 281474976710656;
+  let hi = Math.floor(low48 / B24) ^ M_HI, lo = (low48 % B24) ^ M_LO;
+  const next31 = () => {
+    const p = lo * M_LO + 0xB, carry = Math.floor(p / B24);
+    const nhi = (hi * M_LO + lo * M_HI + carry) % B24;
+    lo = p % B24; hi = nhi;
+    return hi * 128 + Math.floor(lo / 131072);
+  };
+  return { int2: () => Math.floor(next31() / 1073741824), int3: () => { for (;;) { const b = next31(), v = b % 3; if (b - v + 2 < 2147483648) return v; } } };
+}
+function fits(tick, pat, lh) {
+  const r = rng(tick);
+  if (lh) for (let i = 0; i < 10; i++) r.int2();
+  for (let i = 9; i >= 0; i--) if (r.int3() - 1 !== pat[i]) return false;
+  return true;
+}
+function crack(food, pat, lh, maxTick, limit) {
+  const step = food * 3 + 1, out = [];
+  for (let t = 0; t <= maxTick; t += step) if (fits(t, pat, lh)) { out.push(t); if (out.length >= limit) break; }
+  return out;
+}
+// same line rules as the app's pipeline
+function analyzeRows(rows, fps) {
+  rows.sort((a, b) => a.vt - b.vt);
+  const pts = [];
+  rows.forEach((r, i) => {
+    let best = null;
+    for (const [gt, lh] of r.cands) {
+      const off = gt - r.vt; let n = 0;
+      for (let j = Math.max(0, i - 6); j < Math.min(rows.length, i + 7); j++) if (j !== i && rows[j].cands.some(([g]) => Math.abs(g - rows[j].vt - off) <= 3)) n++;
+      if (n && (!best || n > best.n)) best = { off, lh, n };
+    }
+    if (best) pts.push([r.vt, r.vt + best.off, best.lh ? 1 : 0, r.food, r.pat, r.frame]);
+  });
+  let segs = [];
+  for (const p of pts) { const off = p[1] - p[0], last = segs[segs.length - 1]; if (last && Math.abs(off - last.off) <= 3) { last.e = p[5] / fps; last.n++; } else segs.push({ s: p[5] / fps, e: p[5] / fps, n: 1, off }); }
+  segs = segs.filter(s => s.n >= 2);
+  segs = segs.filter((s, i) => (s.n > 2 && s.e - s.s >= 2) || ![segs[i - 1], segs[i + 1]].every(o => !o || Math.abs(o.off - s.off) > 72000));
+  const cuts = [];
+  for (let i = 1; i < segs.length; i++) { const a = segs[i - 1], b = segs[i]; cuts.push({ key: String(Math.round(a.e * 20)), t0: a.e, t1: b.s, removed: (b.off - a.off) / 20, ja: a.n, jb: b.n, scene: null, menu: false }); }
+  const ok = p => segs.some(s => p[5] / fps >= s.s - 1e-6 && p[5] / fps <= s.e + 1e-6 && Math.abs(p[1] - p[0] - s.off) <= 3);
+  return { points: pts.filter(ok), segments: segs, cuts, menus: [] };
+}
+
+// ---------- state ----------
+let P = null;          // project from the server
+let R = null;          // result being shown (project's or imported)
+let imported = false;
+let poll = null;
+const vid = $("vid");
+
+// ---------- routing ----------
+window.addEventListener("hashchange", route);
+$("home").addEventListener("click", () => { location.hash = ""; });
+$("backHome").addEventListener("click", () => { location.hash = ""; });
+// video quality as people say it: 1440p is 2K, 2160p is 4K
+const qual = h => h >= 2160 ? `${h}p · 4K` : h >= 1440 ? `${h}p · 2K` : `${h}p`;
+function route() {
+  clearTimeout(poll);
+  const m = location.hash.match(/^#p\/([\w-]+)/);
+  if (m) openProject(m[1]); else showHome();
+}
+
+// ---------- home ----------
+async function showHome() {
+  P = null; $("vHome").hidden = false; $("vProject").hidden = true; $("ptools").hidden = true; $("backHome").hidden = true; $("crumb").textContent = "Find hidden cuts from Minecraft hunger jolts";
+  vid.removeAttribute("src"); vid.load();
+  const list = homeList = await api("/api/projects");
+  $("plist").innerHTML = list.map(p => {
+    const job = p.job && p.job.running ? p.job : null;
+    const badge = job ? `<span class="badge work">${esc(job.step)} ${job.pct ? Math.round(job.pct) + "%" : ""}</span>` : p.stage === "done" ? `<span class="badge done">scanned</span>` : `<span class="badge">${p.stage === "setup" ? "ready to set up" : esc(p.stage)}</span>`;
+    return `<div class="pcard" data-id="${esc(p.id)}" tabindex="0" role="link">
+      <div class="row between"><b>${esc(p.title)}</b>${p.height_px ? `<span class="badge qual">${qual(p.height_px)}</span>` : ""}</div>
+      <div class="meta">${p.duration ? vtime(p.duration) : ""}${p.summary ? ` · ${p.summary.jolts} jolts · ${p.summary.cuts} jumps` : ""}${p.video_deleted ? " · video deleted" : ""}</div>
+      <div class="row between">${badge}${p.url ? `<span class="hint">${esc(p.url.replace("https://", ""))}</span>` : ""}</div>
+      ${job ? `<div class="progress"><i style="width:${job.pct || 0}%"></i></div>` : ""}</div>`;
+  }).join("") || `<p class="hint">No projects yet. Paste a YouTube link above to start.</p>`;
+  if (list.some(p => p.job && p.job.running)) poll = setTimeout(showHome, 1500);
+}
+$("plist").addEventListener("click", e => { const c = e.target.closest(".pcard"); if (c) location.hash = "#p/" + c.dataset.id; });
+$("plist").addEventListener("keydown", e => { const c = e.target.closest(".pcard"); if (c && e.key === "Enter") location.hash = "#p/" + c.dataset.id; });
+// right-click a project card: open, delete its video, or delete it
+let homeList = [];
+$("plist").addEventListener("contextmenu", e => {
+  const c = e.target.closest(".pcard"); if (!c) return;
+  e.preventDefault(); closeCardMenu();
+  const p = homeList.find(x => x.id === c.dataset.id); if (!p) return;
+  const busy = !!(p.job && p.job.running), hasVideo = p.width && !p.video_deleted;
+  const m = document.createElement("div");
+  m.className = "jumpedit cardmenu"; m.id = "cardMenu"; m.setAttribute("role", "menu");
+  m.innerHTML = `<span class="label">${esc(p.title)}${p.height_px ? ` · ${qual(p.height_px)}` : ""}</span>
+    <button data-a="open" role="menuitem">Open</button>
+    ${hasVideo ? `<button data-a="video" role="menuitem" ${busy ? "disabled" : ""}>Delete video, keep the scan</button>` : ""}
+    <button data-a="delete" role="menuitem" ${busy ? "disabled" : ""}>Delete project</button>
+    ${busy ? `<span class="hint">This project is working. Wait for it to finish before deleting.</span>` : ""}`;
+  document.body.append(m);
+  m.style.left = Math.max(8, Math.min(innerWidth - m.offsetWidth - 8, e.clientX)) + "px";
+  m.style.top = Math.max(8, Math.min(innerHeight - m.offsetHeight - 8, e.clientY)) + "px";
+  m.querySelector("button").focus();
+  m.addEventListener("click", async ev => {
+    const a = ev.target.closest("button")?.dataset.a; if (!a) return;
+    closeCardMenu();
+    if (a === "open") { location.hash = "#p/" + p.id; return; }
+    const ask = a === "delete" ? `Delete the project "${p.title}"${p.height_px ? ` (${qual(p.height_px)})` : ""}? Its folder, with the video, scan and marks, goes to the Recycle Bin.`
+      : `Delete the video file of "${p.title}"${p.height_px ? ` (${qual(p.height_px)})` : ""}? It goes to the Recycle Bin. The scan and your marks stay.`;
+    if (!confirm(ask)) return;
+    try { await api(`/api/p/${p.id}/${a === "delete" ? "delete" : "deletevideo"}`, {}); } catch (err) { $("homeErr").hidden = false; $("homeErr").textContent = err.message; }
+    showHome();
+  });
+});
+function closeCardMenu() { $("cardMenu")?.remove(); }
+document.addEventListener("pointerdown", e => { if ($("cardMenu") && !e.target.closest("#cardMenu")) closeCardMenu(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeCardMenu(); });
+async function newFromUrl() {
+  $("homeErr").hidden = true;
+  try { const r = await api("/api/new", { url: $("ytUrl").value, height: +$("ytQ").value }); location.hash = "#p/" + r.id; }
+  catch (e) { $("homeErr").hidden = false; $("homeErr").textContent = e.message; }
+}
+$("ytGo").addEventListener("click", newFromUrl);
+$("ytUrl").addEventListener("keydown", e => { if (e.key === "Enter") newFromUrl(); });
+$("upFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const x = new XMLHttpRequest();
+  $("upBar").hidden = false; $("homeErr").hidden = true;
+  x.upload.onprogress = ev => { $("upBar").firstElementChild.style.width = (ev.loaded / ev.total * 100) + "%"; };
+  x.onload = () => { $("upBar").hidden = true; const j = JSON.parse(x.responseText); if (x.status === 200) location.hash = "#p/" + j.id; else { $("homeErr").hidden = false; $("homeErr").textContent = j.error; } };
+  x.onerror = () => { $("upBar").hidden = true; $("homeErr").hidden = false; $("homeErr").textContent = "The upload failed. Is the app window still open?"; };
+  x.open("POST", "/api/upload?name=" + encodeURIComponent(f.name)); x.send(f);
+  e.target.value = "";
+});
+
+// ---------- project ----------
+let mode = "results", afterWork = null;   // afterWork: view to return to after a background step
+async function openProject(id, keepMode) {
+  let j;
+  try { j = await api("/api/p/" + id); } catch (e) { location.hash = ""; return; }
+  const first = !P || P.id !== id;
+  P = j;
+  $("vHome").hidden = true; $("vProject").hidden = false; $("ptools").hidden = false;
+  $("crumb").innerHTML = `${P.meta.url ? `<a href="${esc(P.meta.url)}" target="_blank" rel="noopener">${esc(P.meta.title)}</a>` : esc(P.meta.title)}${P.meta.height_px ? ` <span class="badge qual">${qual(P.meta.height_px)}</span>` : ""}`;
+  $("backHome").hidden = false;
+  const running = P.job && P.job.running;
+  if (first) { imported = false; mode = P.meta.stage === "done" ? "results" : "setup"; loadVideo(); }
+  if (!keepMode && P.meta.stage === "done" && !running && mode === "work") mode = "results";
+  if (running) mode = "work";
+  else if (mode === "work") { mode = afterWork || (P.meta.stage === "done" ? "results" : "setup"); afterWork = null; }
+  // a finished re-download brings the video back
+  if (!running && !P.meta.video_deleted && P.meta.width && !vid.getAttribute("src")) loadVideo();
+  render();
+  if (running) poll = setTimeout(() => openProject(id, true), 1000);
+}
+function render() {
+  const st = P.meta.stage, job = P.job || {};
+  $("workPanel").hidden = mode !== "work" && !job.error;
+  $("workStep").textContent = job.error ? "Stopped" : job.step || "";
+  $("workPct").textContent = job.running && job.pct ? Math.round(job.pct) + "%" : "";
+  $("workBar").style.width = (job.pct || 0) + "%";
+  $("workErr").hidden = !job.error; $("workErr").textContent = job.error || "";
+  $("setupPanel").hidden = mode !== "setup";
+  $("cancelSetup").hidden = st !== "done";
+  $("results").hidden = mode !== "results" || !P.result;
+  $("setupBtn").hidden = mode !== "results";
+  // project buttons
+  const busy = !!(P.job && P.job.running), gone = !!P.meta.video_deleted;
+  $("expCsv").hidden = $("expHtml").hidden = !P.result;
+  $("expCsv").href = `/api/p/${P.id}/export.csv`; $("expHtml").href = `/api/p/${P.id}/export.html`;
+  $("delVideo").hidden = gone || !P.meta.width; $("reDownload").hidden = !gone || !P.meta.url;
+  [$("delVideo"), $("reDownload"), $("delProject")].forEach(b => b.disabled = busy);
+  $("setupBtn").disabled = gone;
+  if (mode === "setup") fillSetup();
+  if (mode === "results" && P.result && !imported) showResult(P.result);
+  $("showBoxes").checked = mode === "setup" || $("showBoxes").checked;
+  drawOverlay();
+}
+$("setupBtn").addEventListener("click", () => { mode = "setup"; render(); });
+$("cancelSetup").addEventListener("click", () => { mode = "results"; render(); });
+
+// ---------- video ----------
+const fps = () => (P && P.meta.fps) || 60;
+function loadVideo() {
+  $("vErr").hidden = true;
+  if (!P.meta.width || P.meta.video_deleted) {
+    vid.removeAttribute("src"); vid.load();
+    if (P.meta.video_deleted) { $("vErr").hidden = false; $("vErr").textContent = `The video file was deleted to save space. The scan is kept${P.meta.url ? "; use Download video again or the YouTube link" : ""}.`; }
+    return;
+  }
+  vid.src = `/api/p/${P.id}/video`;
+}
+function releaseVideo() { vid.pause(); vid.removeAttribute("src"); vid.load(); }
+$("delVideo").addEventListener("click", async () => {
+  if (!confirm("Delete this project's video file? It goes to the Recycle Bin. The scan, your marks and the small HUD crop stay, so you can still see the results and rescan the same trim.")) return;
+  releaseVideo();
+  try { await api(`/api/p/${P.id}/deletevideo`, {}); } catch (e) { alert(e.message); }
+  openProject(P.id, true).then(loadVideo);
+});
+$("reDownload").addEventListener("click", async () => {
+  try { await api(`/api/p/${P.id}/redownload`, {}); mode = "work"; openProject(P.id, true); } catch (e) { alert(e.message); }
+});
+$("delProject").addEventListener("click", async () => {
+  if (!confirm(`Delete the project "${P.meta.title}"? Its folder, with the video, scan and marks, goes to the Recycle Bin.`)) return;
+  releaseVideo();
+  try { await api(`/api/p/${P.id}/delete`, {}); P = null; location.hash = ""; } catch (e) { alert(e.message); }
+});
+vid.addEventListener("error", () => { if (!vid.getAttribute("src")) return; $("vErr").hidden = false; $("vErr").textContent = `This browser cannot play the video (${P && P.meta.codec || "unknown codec"}). Chrome and Edge play AV1 and VP9.`; });
+// jumps keep the video playing or paused as it was; frame steps always pause
+function seekFrame(fr, pause = false) { if (!vid.getAttribute("src")) return; if (pause) vid.pause(); vid.currentTime = (fr + .5) / fps(); updateLink(fr / fps()); }
+const curFrame = () => Math.floor(vid.currentTime * fps());
+function tick() {
+  const t = vid.currentTime || 0;
+  $("vclock").innerHTML = `${vtime(t)} <span>frame ${Math.floor(t * fps())}</span>`;
+  $("bPlay").textContent = vid.paused ? "Play" : "Pause";
+  if (vid.duration) $("scrub").value = Math.round(t / vid.duration * 1000);
+  if (mode === "setup") drawTrim();
+  draw(); updateLink(t);
+}
+["timeupdate", "seeked", "play", "pause", "loadedmetadata"].forEach(ev => vid.addEventListener(ev, tick));
+vid.addEventListener("loadedmetadata", drawOverlay);
+$("scrub").addEventListener("input", e => { if (vid.duration) { vid.pause(); vid.currentTime = e.target.value / 1000 * vid.duration; } });
+const step = n => { if (vid.getAttribute("src")) seekFrame(curFrame() + n, true); };
+$("bBackF").addEventListener("click", () => step(-1));
+$("bFwdF").addEventListener("click", () => step(1));
+// jump buttons: two pairs, each amount set by right-click and remembered in this browser
+const JUMP_KEY = "joltscan.jumps";
+let jumps = { big: 10, small: 1 };
+try { Object.assign(jumps, JSON.parse(localStorage.getItem(JUMP_KEY)) || {}); } catch (e) {}
+const fmtSec = v => `${+v.toFixed(3)} s`;
+function labelJumps() { document.querySelectorAll(".jump").forEach(b => { b.textContent = `${b.dataset.dir < 0 ? "−" : "+"}${fmtSec(jumps[b.dataset.pair])}`; }); }
+function jumpBy(sec) {
+  if (!vid.getAttribute("src")) return;
+  const t = Math.max(0, Math.min(vid.duration || Infinity, vid.currentTime + sec));
+  vid.currentTime = t; updateLink(t);   // keeps playing if it was playing
+}
+document.querySelectorAll(".jump").forEach(b => {
+  b.addEventListener("click", () => jumpBy(b.dataset.dir * jumps[b.dataset.pair]));
+  b.addEventListener("contextmenu", e => { e.preventDefault(); editJump(b); });
+});
+function editJump(btn) {
+  closeJumpEdit();
+  const box = document.createElement("div"), pair = btn.dataset.pair;
+  box.className = "jumpedit"; box.id = "jumpEdit";
+  box.innerHTML = `<label class="label" for="jumpVal">Jump for the ${pair === "big" ? "outer" : "inner"} buttons</label>
+    <input type="number" id="jumpVal" min="0.017" step="any" value="${jumps[pair]}">
+    <span class="hint">Seconds. Both the back and forward button of this pair use it.</span>
+    <div class="row between"><button id="jumpCancel">Cancel</button><button class="primary" id="jumpSave">Save</button></div>`;
+  document.body.append(box);
+  const r = btn.getBoundingClientRect();
+  box.style.left = Math.max(8, Math.min(innerWidth - box.offsetWidth - 8, r.left)) + "px";
+  box.style.top = (r.bottom + box.offsetHeight + 8 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - box.offsetHeight - 6)) + "px";
+  const input = $("jumpVal"); input.focus(); input.select();
+  const save = () => {
+    const v = parseFloat(input.value);
+    if (!(v > 0)) { input.style.borderColor = "var(--down)"; return; }
+    jumps[pair] = v; labelJumps(); closeJumpEdit();
+    try { localStorage.setItem(JUMP_KEY, JSON.stringify(jumps)); } catch (e) {}
+  };
+  $("jumpSave").onclick = save; $("jumpCancel").onclick = closeJumpEdit;
+  input.addEventListener("keydown", e => { if (e.key === "Enter") save(); if (e.key === "Escape") closeJumpEdit(); });
+}
+function closeJumpEdit() { $("jumpEdit")?.remove(); }
+document.addEventListener("pointerdown", e => { if ($("jumpEdit") && !e.target.closest("#jumpEdit")) closeJumpEdit(); });
+labelJumps();
+$("bPlay").addEventListener("click", () => { if (vid.getAttribute("src")) vid.paused ? vid.play() : vid.pause(); });
+function updateLink(t) {
+  const id = P && (P.meta.url || "").match(/youtu\.be\/([\w-]{11})/)?.[1];
+  $("ytLink").hidden = !id;
+  if (id) $("ytLink").href = `https://youtu.be/${id}?t=${Math.floor(t ?? (vid.currentTime || 0))}`;
+}
+document.addEventListener("keydown", e => {
+  if (e.target.matches("input, textarea, select") || $("vProject").hidden) return;
+  if (e.key === ",") step(-1); else if (e.key === ".") step(1);
+  else if (e.key === " ") { e.preventDefault(); $("bPlay").click(); }
+  else if (/^[jl]$/i.test(e.key) && R) jumpJolt(e.key.toLowerCase() === "l" ? 1 : -1);
+  else if (e.key === "ArrowLeft" || e.key === "ArrowRight") { e.preventDefault(); jumpBy((e.key === "ArrowLeft" ? -1 : 1) * jumps[e.shiftKey ? "big" : "small"]); }
+});
+// HUD zoom: origin on the bars from the project's HUD position
+function hudParams() { const h = P && P.meta.hud; return h && { s: +$("hudS").value || h.s, cx: +$("hudX").value || h.cx, by: +$("hudY").value || h.by }; }
+let focus = "full";
+function applyZoom() {
+  const z = +$("vzoom").value, h = hudParams(), W = P && P.meta.width, H = P && P.meta.height_px;
+  let ox = 50, oy = 50;
+  if (h && W && focus !== "full") {
+    const x = focus === "hearts" ? h.cx - 50.5 * h.s : focus === "hunger" ? h.cx + 50.5 * h.s : h.cx;
+    ox = x / W * 100; oy = (h.by + 4.5 * h.s) / H * 100;
+  }
+  $("zoomer").style.transformOrigin = `${ox}% ${oy}%`;
+  $("zoomer").style.transform = z > 1 ? `scale(${z})` : "";
+}
+$("focus").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  focus = b.dataset.f; [...$("focus").children].forEach(c => c.setAttribute("aria-pressed", c === b));
+  $("vzoom").value = focus === "full" ? 1 : focus === "hud" ? 2.5 : 5; applyZoom();
+});
+$("vzoom").addEventListener("input", applyZoom);
+// boxes over the 10 hearts and 10 hunger icons, in video pixels mapped onto the stage
+function drawOverlay() {
+  const c = $("overlay"), w = c.clientWidth, h = c.clientHeight, dpr = devicePixelRatio || 1, g = c.getContext("2d");
+  c.width = w * dpr; c.height = h * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  const hp = hudParams(), W = P && P.meta.width, H = P && P.meta.height_px;
+  applyZoom();
+  if (!$("showBoxes").checked || !hp || !W) return;
+  const k = Math.min(w / W, h / H), ox = (w - W * k) / 2, oy = (h - H * k) / 2;
+  const box = (x, color) => { g.strokeStyle = color; g.lineWidth = 1; for (let i = 0; i < 10; i++) g.strokeRect(ox + (x + i * 8 * hp.s) * k + .5, oy + hp.by * k + .5, 9 * hp.s * k, 9 * hp.s * k); };
+  box(hp.cx - 91 * hp.s, "#ff6b6b"); box(hp.cx + 10 * hp.s, "#c6f04d");
+}
+$("showBoxes").addEventListener("change", drawOverlay);
+new ResizeObserver(drawOverlay).observe($("stage"));
+
+// ---------- setup ----------
+let trim = [0, 0];
+function fillSetup() {
+  const m = P.meta, h = m.hud || {};
+  trim = (m.trim || [0, m.duration || 0]).slice();
+  $("trimA").value = vtime(trim[0]); $("trimB").value = vtime(trim[1]);
+  $("hudS").value = h.s ?? ""; $("hudX").value = h.cx ?? ""; $("hudY").value = h.by ?? "";
+  $("hudMsg").className = h.s && !h.confident ? "warn" : "hint";
+  $("hudMsg").textContent = !h.s ? "The HUD has not been found yet." : h.confident ? `Found at scale ${h.s}. Check that the boxes line up.` : "The HUD finder is not sure. Check the boxes over the video and fix the numbers if they are off.";
+  $("goAnalyze").disabled = !h.s || !m.duration;
+  drawTrim(); drawOverlay();
+  // the strip shows every red stretch; the text names only long ones (short ones are menus or dark scenes)
+  const sug = m.trim_suggest, miss = (m.hud_missing || []).filter(([a, b]) => b - a >= 30);
+  $("trimMsg").textContent = !sug ? "" : (miss.length ? `No HUD at ${miss.slice(0, 3).map(([a, b]) => `${vtime(a)}–${vtime(b)}`).join(", ")}${miss.length > 3 ? ` and ${miss.length - 3} more` : ""}: other POVs, another GUI scale or a hidden HUD. ` : "")
+    + `Suggested trim ${vtime(sug[0])} to ${vtime(sug[1])}. Footage of another player at the same GUI scale is not detected, so check the end.`;
+  $("useSuggest").hidden = !sug || (Math.abs(sug[0] - trim[0]) < .05 && Math.abs(sug[1] - trim[1]) < .05);
+  api(`/api/p/${P.id}/hudtrack`).then(t => { hudTrack = t; drawStrip(); }).catch(() => {});
+}
+// green where the HUD sits at the found position, red where it does not (per keyframe)
+let hudTrack = [];
+function drawStrip() {
+  const c = $("hudStrip"), w = c.clientWidth, h = c.clientHeight, dpr = devicePixelRatio || 1, g = c.getContext("2d"), D = (P && P.meta.duration) || 1;
+  c.width = w * dpr; c.height = h * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+  hudTrack.forEach(([t, s], i) => {
+    const t1 = i + 1 < hudTrack.length ? hudTrack[i + 1][0] : D;
+    g.fillStyle = s < 30 ? "#4f8f2a" : "#a33a3a"; g.fillRect(t / D * w, 0, Math.max(1, (t1 - t) / D * w), h);
+  });
+}
+new ResizeObserver(() => { if (mode === "setup") drawStrip(); }).observe($("hudStrip"));
+$("useSuggest").addEventListener("click", () => { const s = P.meta.trim_suggest; trim = s.slice(); setTrim(0, s[0]); setTrim(1, s[1]); $("useSuggest").hidden = true; });
+
+// HUD picker: two clicks on the video give the scale, center and bar height
+let picking = 0, pick1 = null;
+function videoPoint(e) {
+  const r = vid.getBoundingClientRect(), W = P.meta.width, H = P.meta.height_px, k = Math.min(r.width / W, r.height / H);
+  const x = (e.clientX - r.left - (r.width - W * k) / 2) / k, y = (e.clientY - r.top - (r.height - H * k) / 2) / k;
+  return x >= 0 && y >= 0 && x <= W && y <= H ? [x, y] : null;
+}
+$("pickHud").addEventListener("click", () => {
+  picking = 1; pick1 = null; vid.pause(); $("stage").classList.add("picking");
+  $("pickMsg").hidden = false; $("pickMsg").textContent = "Click the top-left corner of the leftmost heart. Use HUD zoom to click precisely. Press Escape to cancel.";
+});
+$("stage").addEventListener("click", e => {
+  if (!picking) return;
+  const p = videoPoint(e); if (!p) return;
+  if (picking === 1) { pick1 = p; picking = 2; $("pickMsg").textContent = "Now click the bottom-right corner of the rightmost hunger icon."; return; }
+  picking = 0; $("stage").classList.remove("picking");
+  const s = (p[0] - pick1[0]) / 182, hs = (p[1] - pick1[1]) / 9;
+  if (!(s > .5)) { $("pickMsg").textContent = "Those clicks are too close or in the wrong order. Click Pick on the video to try again."; return; }
+  $("hudS").value = s.toFixed(3); $("hudX").value = ((pick1[0] + p[0]) / 2).toFixed(1); $("hudY").value = pick1[1].toFixed(1);
+  drawOverlay();
+  $("pickMsg").textContent = Math.abs(hs - s) / s > .15
+    ? `Picked scale ${s.toFixed(2)}, but the bar height suggests ${hs.toFixed(2)}. Check the boxes; the corners may be off.`
+    : `Picked scale ${s.toFixed(2)}. Check the boxes, then click Check these numbers to update the HUD strip and the suggested trim.`;
+}, true);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && picking) { picking = 0; $("stage").classList.remove("picking"); $("pickMsg").hidden = true; } });
+$("checkHud").addEventListener("click", async () => {
+  try { await api(`/api/p/${P.id}/checkhud`, { hud: { s: +$("hudS").value, cx: +$("hudX").value, by: +$("hudY").value } }); mode = "work"; afterWork = "setup"; openProject(P.id, true); }
+  catch (e) { alertWork(e.message); }
+});
+function drawTrim() {
+  const D = (P && P.meta.duration) || 1;
+  $("trimKeep").style.left = trim[0] / D * 100 + "%"; $("trimKeep").style.width = (trim[1] - trim[0]) / D * 100 + "%";
+  $("trimHead").style.left = (vid.currentTime || 0) / D * 100 + "%";
+}
+function setTrim(i, v) {
+  const D = P.meta.duration; v = Math.max(0, Math.min(D, v));
+  if (i === 0) trim[0] = Math.min(v, trim[1] - 1); else trim[1] = Math.max(v, trim[0] + 1);
+  $("trimA").value = vtime(trim[0]); $("trimB").value = vtime(trim[1]); drawTrim();
+}
+$("setA").addEventListener("click", () => setTrim(0, vid.currentTime || 0));
+$("setB").addEventListener("click", () => setTrim(1, vid.currentTime || 0));
+$("trimA").addEventListener("change", e => { const v = parseTime(e.target.value); if (v !== null) setTrim(0, v); else e.target.value = vtime(trim[0]); });
+$("trimB").addEventListener("change", e => { const v = parseTime(e.target.value); if (v !== null) setTrim(1, v); else e.target.value = vtime(trim[1]); });
+let tdrag = null;
+$("trimbar").addEventListener("pointerdown", e => {
+  const r = $("trimbar").getBoundingClientRect(), D = P.meta.duration, t = (e.clientX - r.left) / r.width * D;
+  const edge = Math.abs(t - trim[0]) / D * r.width < 12 ? 0 : Math.abs(t - trim[1]) / D * r.width < 12 ? 1 : null;
+  tdrag = { edge }; $("trimbar").setPointerCapture(e.pointerId);
+  if (edge === null && vid.getAttribute("src")) { vid.pause(); vid.currentTime = t; }
+});
+$("trimbar").addEventListener("pointermove", e => {
+  if (!tdrag) return;
+  const r = $("trimbar").getBoundingClientRect(), t = (e.clientX - r.left) / r.width * P.meta.duration;
+  if (tdrag.edge === null) { if (vid.getAttribute("src")) vid.currentTime = Math.max(0, t); }
+  else { setTrim(tdrag.edge, t); if (vid.getAttribute("src")) vid.currentTime = trim[tdrag.edge]; }
+});
+$("trimbar").addEventListener("pointerup", () => { tdrag = null; });
+["hudS", "hudX", "hudY"].forEach(id => $(id).addEventListener("input", drawOverlay));
+$("findHud").addEventListener("click", async () => { try { await api(`/api/p/${P.id}/findhud`, {}); mode = "work"; afterWork = "setup"; openProject(P.id, true); } catch (e) { alertWork(e.message); } });
+$("goAnalyze").addEventListener("click", async () => {
+  try {
+    await api(`/api/p/${P.id}/analyze`, { trim, hud: { s: +$("hudS").value, cx: +$("hudX").value, by: +$("hudY").value } });
+    imported = false; mode = "work"; openProject(P.id);
+  } catch (e) { alertWork(e.message); }
+});
+function alertWork(msg) { $("workPanel").hidden = false; $("workErr").hidden = false; $("workErr").textContent = msg; }
+
+// ---------- results ----------
+const STATUS = { hidden: "Hidden cut", visible: "Visible cut", menu: "Menu cut", unsure: "Not sure", notcut: "Not a cut", unchecked: "Not checked" };
+const statusOf = c => c.removed < 0 ? "pause" : (P.verdicts[c.key] || {}).status || "unchecked";
+function showResult(res) {
+  R = res;
+  const real = R.cuts.filter(c => c.removed > 0);
+  const marked = s => R.cuts.filter(c => statusOf(c) === s).length;
+  $("stats").innerHTML = [[R.points.length, "confirmed jolts"], [real.length, "jumps in game time"], [`${marked("hidden") + marked("menu")} / ${marked("visible")}`, "hidden / visible marked"], [`${Math.round(real.reduce((a, c) => a + c.removed, 0) / 60)} min`, "game time removed"]]
+    .map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+  SP = R.points.slice().sort((a, b) => a[5] - b[5]);
+  if (!view || view.res !== R) { view = { res: R, a: R.start ?? 0, b: R.end }; yAnim = null; hoverGap = selGap = null; showGap(); }
+  renderRows(); draw();
+}
+function scanRange() { return [R.start ?? 0, R.end]; }
+
+// chart: x video seconds, y game uptime seconds
+const cv = $("chart"), g2 = cv.getContext("2d");
+let view = null, hover = null, sel = null, selCut = null, drag = null;
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const PAD = { l: 70, r: 12, t: 12, b: 28 };
+const tx = p => p[5] / fps(), ty = p => p[1] / 20;
+// vertical range eases toward its target instead of jumping on every zoom step
+let yAnim = null, yTarget = null, animT = 0, rafId = 0;
+let SP = [], hoverGap = null, selGap = null;   // SP: jolts in video order; a gap is the stretch between two neighbours
+// uptime the jolt lines give at video time x (offset of the last line that starts before x)
+function lineAt(x) {
+  let s = R.segments[0];
+  for (const q of R.segments) { if (q.s <= x) s = q; else break; }
+  return s ? x + s.off / 20 : x;
+}
+function targetY() {
+  let y0 = Math.min(lineAt(view.a), lineAt(view.b)), y1 = Math.max(lineAt(view.a), lineAt(view.b));
+  for (const p of SP) { const s = tx(p); if (s < view.a) continue; if (s > view.b) break; const v = ty(p); if (v < y0) y0 = v; if (v > y1) y1 = v; }
+  const pad = Math.max((y1 - y0) * .08, (view.b - view.a) * .05, .5);
+  return [y0 - pad, y1 + pad];
+}
+function geom() {
+  const w = cv.clientWidth, h = cv.clientHeight, dpr = devicePixelRatio || 1;
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+  g2.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!yAnim) yAnim = targetY();
+  const [y0, y1] = yAnim, W = w - PAD.l - PAD.r;
+  return { w, h, y0, y1, W, X: s => PAD.l + (s - view.a) / (view.b - view.a) * W, Y: v => h - PAD.b - (v - y0) / (y1 - y0) * (h - PAD.t - PAD.b), inv: x => view.a + (x - PAD.l) / W * (view.b - view.a) };
+}
+function draw() {
+  if (!R || $("results").hidden) return;
+  yTarget = targetY();
+  if (!yAnim) yAnim = yTarget.slice();
+  renderChart();
+  if (!rafId && (yAnim[0] !== yTarget[0] || yAnim[1] !== yTarget[1])) { animT = performance.now(); rafId = requestAnimationFrame(animate); }
+}
+function animate(now) {
+  rafId = 0;
+  const k = 1 - Math.exp(-Math.min(64, now - animT) / 70); animT = now;
+  yAnim = yAnim.map((v, i) => v + (yTarget[i] - v) * k);
+  if (Math.abs(yAnim[0] - yTarget[0]) + Math.abs(yAnim[1] - yTarget[1]) < (yTarget[1] - yTarget[0]) * 2e-4) yAnim = yTarget.slice();
+  renderChart();
+  if (yAnim[0] !== yTarget[0] || yAnim[1] !== yTarget[1]) rafId = requestAnimationFrame(animate);
+}
+// time steps for both axes; lines fade in with spacing and labels cross-fade between steps
+const STEPS = [0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 14400];
+function grid(lo, hi, perSec, minPx, line, label) {
+  const each = (st, fn) => { for (let k = Math.ceil(lo / st - 1e-9); k * st <= hi + 1e-9; k++) fn(+(k * st).toFixed(4)); };
+  g2.strokeStyle = css("--grid"); g2.lineWidth = 1;
+  for (const st of STEPS) {
+    const sp = st * perSec; if (sp < 6) continue; if (sp > 500) break;
+    g2.globalAlpha = Math.min(1, (sp - 6) / 50);
+    each(st, line);
+  }
+  // the fading finer labels must sit on a step that divides the main one, or labels interleave and overlap
+  const L = STEPS.find(st => st * perSec >= minPx) || STEPS[STEPS.length - 1];
+  const F = STEPS.slice(0, STEPS.indexOf(L)).reverse().find(st => Math.abs(L / st - Math.round(L / st)) < 1e-6);
+  const onL = v => Math.abs(v / L - Math.round(v / L)) < 1e-6;
+  g2.fillStyle = css("--muted"); g2.globalAlpha = 1;
+  each(L, v => label(v, L));
+  if (F) { const fade = (F * perSec - .55 * minPx) / (.45 * minPx); if (fade > 0) { g2.globalAlpha = Math.min(1, fade); each(F, v => { if (!onL(v)) label(v, F); }); } }
+  g2.globalAlpha = 1;
+}
+const fmtDur = s => { const a = Math.abs(s); return a < 60 ? `${a.toFixed(2)} s` : a < 3600 ? `${Math.floor(a / 60)} min ${(a % 60).toFixed(1)} s` : `${Math.floor(a / 3600)} h ${Math.floor(a / 60) % 60} min`; };
+function gapAt(t) {
+  let lo = 0, hi = SP.length - 2;
+  if (hi < 0 || t < tx(SP[0]) || t >= tx(SP[SP.length - 1])) return null;
+  while (lo < hi) { const m = (lo + hi + 1) >> 1; if (tx(SP[m]) <= t) lo = m; else hi = m - 1; }
+  return makeGap(lo);
+}
+function makeGap(i) {
+  const p = SP[i], q = SP[i + 1], dv = tx(q) - tx(p), dg = ty(q) - ty(p);
+  return { i, p, q, dv, dg, miss: dg - dv };
+}
+const gapKind = g => g.miss > .15 ? "missing" : g.miss < -.15 ? "back" : "none";
+const gapText = g => gapKind(g) === "missing" ? `${fmtDur(g.miss)} of game time missing` : gapKind(g) === "back" ? `game time went back ${fmtDur(g.miss)}` : "no missing time";
+const GAPCOL = { missing: "--menu", back: "--up", none: "--line-hi" };
+const CUTCOL = { hidden: "--hidden", visible: "--visible", menu: "--menu", unsure: "--down", notcut: "--line-hi", unchecked: "--line-hi", pause: "--line-hi" };
+function renderChart() {
+  const g = geom(), { w, h, X, Y } = g, top = PAD.t, bot = h - PAD.b;
+  g2.clearRect(0, 0, w, h); g2.font = "11px IBM Plex Mono, monospace";
+  g2.fillStyle = css("--menu"); g2.globalAlpha = .2;
+  (R.menus || []).forEach(([a, b]) => { if (b >= view.a && a <= view.b) g2.fillRect(X(a), top, Math.max(1, X(b) - X(a)), bot - top); });
+  g2.globalAlpha = 1;
+  g2.textAlign = "right";
+  grid(g.y0, g.y1, (bot - top) / (g.y1 - g.y0), 34,
+    v => { const y = Y(v); g2.beginPath(); g2.moveTo(PAD.l, y); g2.lineTo(w - PAD.r, y); g2.stroke(); },
+    (v, st) => g2.fillText(st < 1 ? vtime(v) : hms(v * 20), PAD.l - 6, Y(v) + 4));
+  g2.textAlign = "center";
+  grid(view.a, view.b, g.W / (view.b - view.a), 90,
+    v => { const x = X(v); g2.beginPath(); g2.moveTo(x, top); g2.lineTo(x, bot); g2.stroke(); },
+    (v, st) => { const x = X(v); if (x > PAD.l - 30 && x < w - PAD.r + 30) g2.fillText(st < 1 ? vtime(v) : vtime(v).replace(/\.\d\d$/, ""), x, h - 9); });
+  g2.save(); g2.beginPath(); g2.rect(PAD.l, top, g.W, bot - top); g2.clip();
+  // gap under the pointer, and the pinned one
+  for (const [gp, strong] of [[hoverGap, false], [selGap, true]]) {
+    if (!gp) continue;
+    const x0 = X(tx(gp.p)), x1 = X(tx(gp.q)), col = css(GAPCOL[gapKind(gp)]);
+    g2.fillStyle = col; g2.globalAlpha = strong ? .2 : .1; g2.fillRect(x0, top, x1 - x0, bot - top);
+    if (strong) { g2.globalAlpha = .8; g2.strokeStyle = col; g2.lineWidth = 1; g2.strokeRect(x0 + .5, top + .5, x1 - x0 - 1, bot - top - 1); }
+    g2.globalAlpha = .9; g2.strokeStyle = col; g2.lineWidth = 2; g2.setLineDash([5, 4]);
+    g2.beginPath(); g2.moveTo(x0, Y(ty(gp.p))); g2.lineTo(x1, Y(ty(gp.q))); g2.stroke(); g2.setLineDash([]);
+  }
+  g2.globalAlpha = 1;
+  R.cuts.forEach(c => {
+    if (c.t1 < view.a || c.t0 > view.b) return;
+    const st = statusOf(c), strong = c === selCut || ["hidden", "visible", "menu"].includes(st);
+    g2.strokeStyle = c === selCut ? css("--fg") : css(CUTCOL[st]); g2.globalAlpha = strong ? .8 : .35; g2.setLineDash(strong ? [] : [3, 3]);
+    const x = X((c.t0 + c.t1) / 2); g2.beginPath(); g2.moveTo(x, top); g2.lineTo(x, bot); g2.stroke();
+  });
+  g2.setLineDash([]); g2.globalAlpha = .55; g2.strokeStyle = css("--accent"); g2.lineWidth = 2;
+  R.segments.forEach(s => { if (s.e < view.a || s.s > view.b) return; const o = s.off / 20; g2.beginPath(); g2.moveTo(X(s.s), Y(s.s + o)); g2.lineTo(X(s.e), Y(s.e + o)); g2.stroke(); });
+  g2.globalAlpha = 1;
+  const rad = Math.min(6, Math.max(2.4, 2.4 * Math.sqrt((R.end - (R.start || 0)) / (view.b - view.a)) / 3));
+  R.points.forEach(p => {
+    const s = tx(p); if (s < view.a || s > view.b) return;
+    g2.fillStyle = p[2] ? css("--lh") : css("--accent"); g2.beginPath(); g2.arc(X(s), Y(ty(p)), p === hover ? rad + 2.5 : rad, 0, 7); g2.fill();
+    if (p === sel) { g2.strokeStyle = css("--fg"); g2.lineWidth = 2; g2.beginPath(); g2.arc(X(s), Y(ty(p)), rad + 4, 0, 7); g2.stroke(); }
+  });
+  g2.restore();
+  // playhead: thick line with a dark edge so it shows over dots, plus a handle on top
+  if (vid.getAttribute("src")) {
+    const x = X(vid.currentTime);
+    if (x >= PAD.l - 1 && x <= w - PAD.r + 1) {
+      g2.strokeStyle = css("--bg"); g2.lineWidth = 6; g2.beginPath(); g2.moveTo(x, top); g2.lineTo(x, bot); g2.stroke();
+      g2.strokeStyle = css("--play"); g2.lineWidth = 3; g2.beginPath(); g2.moveTo(x, top); g2.lineTo(x, bot); g2.stroke();
+      g2.fillStyle = css("--play"); g2.beginPath(); g2.moveTo(x - 7, top); g2.lineTo(x + 7, top); g2.lineTo(x, top + 9); g2.closePath(); g2.fill();
+    }
+  }
+  const [a, b] = scanRange();
+  $("zoomTxt").textContent = view.a <= a + .01 && view.b >= b - .01 ? "whole scan" : `${vtime(view.a)} – ${vtime(view.b)}`;
+}
+function setView(a, b) { const [lo, hi] = scanRange(); const span = Math.max(.3, Math.min(hi - lo, b - a)); a = Math.max(lo, Math.min(hi - span, a)); view = { res: R, a, b: a + span }; draw(); }
+function zoomAt(sec, k) { setView(sec - (sec - view.a) * k, sec + (view.b - sec) * k); }
+cv.addEventListener("wheel", e => {
+  e.preventDefault(); const g = geom(), x = e.clientX - cv.getBoundingClientRect().left;
+  if (e.shiftKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) { const d = (e.deltaX || e.deltaY) / g.W * (view.b - view.a); setView(view.a + d, view.b + d); return; }
+  zoomAt(g.inv(Math.max(PAD.l, Math.min(g.w - PAD.r, x))), Math.exp(e.deltaY * .0015));
+}, { passive: false });
+$("zoomIn").addEventListener("click", () => zoomAt((view.a + view.b) / 2, .5));
+$("zoomOut").addEventListener("click", () => zoomAt((view.a + view.b) / 2, 2));
+$("zoomAll").addEventListener("click", () => setView(...scanRange()));
+// center on the playhead; from the whole-scan view, also zoom to one minute around it
+$("toPlayhead").addEventListener("click", () => {
+  const t = vid.currentTime || 0, [a, b] = scanRange();
+  const span = view.b - view.a >= (b - a) - .01 ? Math.min(60, b - a) : view.b - view.a;
+  setView(t - span / 2, t + span / 2);
+});
+cv.addEventListener("dblclick", () => setView(...scanRange()));
+function nearest(mx, my) { const g = geom(); let best = null, bd = 196; R.points.forEach(p => { const s = tx(p); if (s < view.a || s > view.b) return; const d = (g.X(s) - mx) ** 2 + (g.Y(ty(p)) - my) ** 2; if (d < bd) { bd = d; best = p; } }); return best; }
+const pos = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+// scrubbing: grab the playhead (or its handle) and drag; the video follows
+const onPlayhead = (mx, my) => {
+  if (!vid.getAttribute("src")) return false;
+  const dx = Math.abs(mx - geom().X(vid.currentTime || 0));
+  return dx <= 8 || (my <= PAD.t + 14 && dx <= 12);
+};
+let scrubTo = null;
+function scrubSeek(t) {
+  const [a, b] = scanRange(); t = Math.max(a, Math.min(b, t));
+  // seeking a 4K file is slow: keep one seek in flight and jump to the latest target after it
+  if (vid.seeking) scrubTo = t; else { scrubTo = null; vid.currentTime = t; }
+  $("vclock").innerHTML = `${vtime(t)} <span>frame ${Math.floor(t * fps())}</span>`;
+  draw();
+}
+vid.addEventListener("seeked", () => { if (scrubTo !== null) { const t = scrubTo; scrubTo = null; vid.currentTime = t; } });
+cv.addEventListener("pointerdown", e => {
+  const [mx, my] = pos(e);
+  if (onPlayhead(mx, my)) { drag = { scrub: true, wasPlaying: !vid.paused }; vid.pause(); cv.classList.add("scrubbing"); }
+  else drag = { x0: mx, a: view.a, b: view.b, moved: false };
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener("pointermove", e => {
+  const [mx, my] = pos(e);
+  if (drag && drag.scrub) { scrubSeek(geom().inv(mx)); $("tip").hidden = true; return; }
+  if (drag) { if (Math.abs(mx - drag.x0) > 4) { drag.moved = true; cv.classList.add("dragging"); } if (drag.moved) { const g = geom(), d = (drag.x0 - mx) / g.W * (drag.b - drag.a); setView(drag.a + d, drag.b + d); $("tip").hidden = true; return; } }
+  cv.classList.toggle("onhead", onPlayhead(mx, my));
+  hover = nearest(mx, my);
+  hoverGap = !hover && mx >= PAD.l && mx <= cv.clientWidth - PAD.r ? gapAt(geom().inv(mx)) : null;
+  draw();
+  const tip = $("tip");
+  if (hover) tip.innerHTML = `video ${vtime(tx(hover))} · frame ${hover[5]}<br>uptime ${hms(hover[1])} · tick ${hover[1]}<br>${hover[3]}${hover[2] ? "H" : ""} ${hover[4]}`;
+  else if (hoverGap) tip.innerHTML = `between jolts ${vtime(tx(hoverGap.p))} → ${vtime(tx(hoverGap.q))}<br>video ${fmtDur(hoverGap.dv)} · game ${fmtDur(hoverGap.dg)}<br><b style="color:var(${GAPCOL[gapKind(hoverGap)]})">${gapText(hoverGap)}</b>`;
+  else { tip.hidden = true; return; }
+  tip.hidden = false;
+  tip.style.left = Math.min(Math.max(mx + 12, 0), cv.clientWidth - tip.offsetWidth) + "px"; tip.style.top = (my + 16) + "px";
+});
+// pinned gap: details under the chart
+function showGap() {
+  const c = $("gapCard");
+  if (!selGap) { c.hidden = true; return; }
+  const gp = selGap, cut = R.cuts.find(k => Math.abs(k.t0 - tx(gp.p)) < .02 && Math.abs(k.t1 - tx(gp.q)) < .02);
+  c.hidden = false;
+  c.innerHTML = `<div class="row between"><b style="color:var(${GAPCOL[gapKind(gp)]})">${gapText(gp)}</b><button id="gapClose" aria-label="Close">×</button></div>
+    <div>jolts at ${vtime(tx(gp.p))} and ${vtime(tx(gp.q))}</div>
+    <div>video time between them: ${fmtDur(gp.dv)} · game time between them: ${fmtDur(gp.dg)}</div>
+    <div>uptime ${hms(gp.p[1])} → ${hms(gp.q[1])}</div>
+    <div class="row"><button id="gapA">Go to first jolt</button><button id="gapB">Go to second jolt</button>${cut ? `<button id="gapRow">Show in jumps list (${STATUS[statusOf(cut)] || "Pause"})</button>` : ""}</div>`;
+  $("gapClose").onclick = () => { selGap = null; showGap(); draw(); };
+  $("gapA").onclick = () => pickPoint(gp.p);
+  $("gapB").onclick = () => pickPoint(gp.q);
+  if (cut) $("gapRow").onclick = () => { revealCut(cut); $("rows").closest(".tablebox").scrollIntoView({ block: "nearest" }); };
+}
+cv.addEventListener("pointerup", e => {
+  const d = drag; drag = null; cv.classList.remove("dragging", "scrubbing");
+  if (!d) return;
+  if (d.scrub) { if (d.wasPlaying) vid.play(); return; }
+  if (!d.moved) {
+    // click a jolt to load it; click between jolts to pin that gap; either way off a jolt moves the video there
+    const [mx, my] = pos(e), p = nearest(mx, my);
+    if (p) { pickPoint(p); return; }
+    if (mx < PAD.l) return;
+    const t = geom().inv(mx);
+    selGap = gapAt(t); showGap(); draw();
+    if (selGap) revealCut(R.cuts.find(k => Math.abs(k.t0 - tx(selGap.p)) < .02 && Math.abs(k.t1 - tx(selGap.q)) < .02) || cutNear(t));
+    if (vid.getAttribute("src")) vid.currentTime = Math.max(scanRange()[0], Math.min(scanRange()[1], t));
+  }
+});
+cv.addEventListener("pointerleave", () => { if (!drag) { hover = null; hoverGap = null; $("tip").hidden = true; draw(); } });
+new ResizeObserver(draw).observe(cv);
+// the jump nearest to video time t (0 when t falls inside the jump's gap)
+function cutNear(t) {
+  let best = null, bd = Infinity;
+  for (const c of R.cuts) { const d = t >= c.t0 && t <= c.t1 ? 0 : Math.min(Math.abs(t - c.t0), Math.abs(t - c.t1)); if (d < bd) { bd = d; best = c; } }
+  return best;
+}
+// select a jump's row, switch the filter if it hides it, and scroll only the list to it
+function revealCut(c) {
+  if (!c) return;
+  if (filter !== "all" && statusOf(c) !== filter) { filter = "all"; [...$("chips").children].forEach(b => b.setAttribute("aria-pressed", b.dataset.f === "all")); renderRows(); }
+  selCut = c; markRows(); draw();
+  const row = $("rows").querySelector(`tr[data-k="${R.cuts.indexOf(c)}"]`), box = row && row.closest(".tablebox");
+  if (!row) return;
+  // measure against the list box itself (offsetTop would count from the page)
+  const delta = row.getBoundingClientRect().top - box.getBoundingClientRect().top;
+  box.scrollTop += delta - box.clientHeight / 2 + row.offsetHeight / 2;
+  row.classList.remove("flash"); void row.offsetWidth; row.classList.add("flash");
+}
+function pickPoint(p, fromRow) {
+  sel = p; draw();
+  if (!fromRow) revealCut(cutNear(tx(p)));
+  state.food = p[3]; state.lh = !!p[2]; state.pat = [...p[4]].map(c => sym[c]); syncCode();
+  state.ctx = { frame: p[5], gt: p[1] }; $("bound").value = `${hms(Math.max(p[1] * 2, 576000))}|00`; runCrack();
+  seekFrame(p[5]);
+  const seg = R.segments.find(s => tx(p) >= s.s - .01 && tx(p) <= s.e + .01);
+  $("jcard").innerHTML = `<div><b>${p[3]}${p[2] ? "H" : ""} ${p[4]}</b></div><div>video ${vtime(tx(p))} · frame ${p[5]}</div><div>game tick ${p[1]} · uptime ${hms(p[1])}</div><div>${p[2] ? "low health" : "normal"} · ${seg ? `line of ${seg.n} jolts` : "single jolt"}</div>`;
+}
+function jumpJolt(dir) {
+  const t = vid.getAttribute("src") ? vid.currentTime : sel ? tx(sel) : 0;
+  const list = R.points.slice().sort((a, b) => a[5] - b[5]);
+  const p = dir > 0 ? list.find(p => tx(p) > t + .02) : list.reverse().find(p => tx(p) < t - .02);
+  if (p) { pickPoint(p); if (tx(p) < view.a || tx(p) > view.b) { const sp = view.b - view.a; setView(tx(p) - sp / 2, tx(p) + sp / 2); } }
+}
+
+// jumps table with editable status
+const FILTERS = [["all", "All"], ["unchecked", "Not checked"], ["hidden", "Hidden"], ["menu", "Menu"], ["visible", "Visible"], ["unsure", "Not sure"], ["notcut", "Not a cut"]];
+let filter = "all";
+$("chips").innerHTML = FILTERS.map(([k, t]) => `<button data-f="${k}" aria-pressed="${k === filter}">${t}</button>`).join("");
+$("chips").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; filter = b.dataset.f; [...$("chips").children].forEach(c => c.setAttribute("aria-pressed", c === b)); renderRows(); });
+function detector(c) {
+  const parts = [];
+  if (c.scene !== null && c.scene !== undefined) parts.push(c.scene >= 8 ? `scene change ${c.scene.toFixed(1)}` : `no scene change (${c.scene.toFixed(1)})`);
+  if (c.menu) parts.push("menu in gap");
+  return parts.join(" · ") || "–";
+}
+function renderRows() {
+  const list = R.cuts.filter(c => filter === "all" || statusOf(c) === filter);
+  $("rows").innerHTML = list.map(c => {
+    const st = statusOf(c), v = P.verdicts[c.key] || {};
+    return `<tr data-k="${R.cuts.indexOf(c)}">
+      <td class="num">${vtime(c.t0)} → ${vtime(c.t1)}</td><td class="num">${c.removed >= 0 ? "+" : ""}${c.removed.toFixed(2)} s</td>
+      <td class="num">${c.ja} | ${c.jb}</td><td class="det">${detector(c)}</td>
+      <td>${st === "pause" ? `<span class="pill s-pause">Pause</span>` : `<button class="pill s-${st}" data-status="${R.cuts.indexOf(c)}" ${imported ? "disabled" : ""}>${STATUS[st]} ▾</button>`}${st === "unchecked" && c.suggest && !imported ? `<button class="suggest" data-accept="${R.cuts.indexOf(c)}" title="Suggested from ${c.suggest === "menu" ? "a menu opening or closing in the gap" : c.suggest === "hidden" ? "no scene change in the gap" : "a scene change in the gap"}. Click to accept.">${STATUS[c.suggest]}? ✓</button>` : ""}</td>
+      <td class="note">${esc(st === "pause" ? "Game time fell behind: pause, lag or relaunch" : v.note || "")}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="note">No jumps with this status.</td></tr>`;
+  markRows();
+}
+function markRows() { [...$("rows").children].forEach(r => r.classList.toggle("sel", !!selCut && +r.dataset.k === R.cuts.indexOf(selCut))); }
+$("rows").addEventListener("click", async e => {
+  const acc = e.target.closest("[data-accept]");
+  if (acc) {
+    e.stopPropagation();
+    const c = R.cuts[+acc.dataset.accept];
+    try { P.verdicts = await api(`/api/p/${P.id}/verdict`, { key: c.key, status: c.suggest, note: "" }); showResult(R); revealCut(c); }
+    catch (err) { acc.textContent = "Not saved"; }
+    return;
+  }
+  const sb = e.target.closest("[data-status]");
+  if (sb) { e.stopPropagation(); openPop(R.cuts[+sb.dataset.status], sb); return; }
+  const r = e.target.closest("tr[data-k]"); if (!r) return;
+  selCut = R.cuts[+r.dataset.k]; markRows();
+  const pad = Math.max(8, (selCut.t1 - selCut.t0) * 1.5); setView(selCut.t0 - pad, selCut.t1 + pad);
+  const before = R.points.filter(p => tx(p) <= selCut.t0 + .02).pop(); if (before) pickPoint(before, true);
+});
+function openPop(c, anchor) {
+  const v = P.verdicts[c.key] || {}, pop = $("pop"), cur = v.status || "unchecked";
+  pop.innerHTML = `<span class="label">Jump at ${vtime(c.t0)}</span><div class="opts">${Object.entries(STATUS).map(([k, t]) => `<button class="pill s-${k}" data-v="${k}" aria-pressed="${k === cur}">${t}</button>`).join("")}</div>
+    <textarea id="popNote" placeholder="What changes at this jump (optional)">${esc(v.note || "")}</textarea>
+    <div class="row between"><button id="popCancel">Cancel</button><button class="primary" id="popSave">Save</button></div>`;
+  let pick = cur;
+  const mark = () => pop.querySelectorAll("[data-v]").forEach(b => { b.style.outline = b.dataset.v === pick ? "2px solid currentColor" : ""; b.setAttribute("aria-pressed", b.dataset.v === pick); });
+  pop.hidden = false; mark();
+  const r = anchor.getBoundingClientRect();
+  pop.style.left = Math.max(8, Math.min(innerWidth - pop.offsetWidth - 8, r.left)) + "px";
+  pop.style.top = (r.bottom + pop.offsetHeight + 8 < innerHeight ? r.bottom + 6 : Math.max(8, r.top - pop.offsetHeight - 6)) + "px";
+  pop.querySelectorAll("[data-v]").forEach(b => b.addEventListener("click", () => { pick = b.dataset.v; mark(); }));
+  $("popCancel").onclick = () => { pop.hidden = true; };
+  $("popSave").onclick = async () => {
+    try { P.verdicts = await api(`/api/p/${P.id}/verdict`, { key: c.key, status: pick, note: $("popNote").value.trim() }); pop.hidden = true; showResult(R); }
+    catch (e) { $("popSave").textContent = "Not saved: " + e.message; }
+  };
+  $("popNote").focus();
+}
+document.addEventListener("pointerdown", e => { if (!$("pop").hidden && !e.target.closest("#pop") && !e.target.closest("[data-status]")) $("pop").hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape") $("pop").hidden = true; });
+
+// ---------- cracker UI ----------
+const sym = { "+": -1, "0": 0, "-": 1 }, chr = { "-1": "+", "0": "0", "1": "-" };
+const state = { food: 20, lh: false, pat: [0, 0, -1, -1, 1, 0, 0, 1, 0, -1], first: false, ctx: null };
+// the real 9x9 hunger textures, served by the app
+const iconSVG = kind => `<img class="icon" src="/icons/${kind}.png" alt="" draggable="false">`;
+function iconKind(i, food) { const n = (9 - i) * 2; return food >= n + 2 ? "full" : food === n + 1 ? "half" : "empty"; }
+function renderSlots() {
+  $("slots").innerHTML = state.pat.map((v, i) => `<div class="slot"><button data-i="${i}" data-v="-1" class="${v === -1 ? "on" : ""}" aria-label="Move hunger slot ${i + 1} up">▲</button>
+    <span style="transform:translateY(${v * 3}px)">${iconSVG(iconKind(i, state.food))}</span><button data-i="${i}" data-v="1" class="${v === 1 ? "on" : ""}" aria-label="Move hunger slot ${i + 1} down">▼</button></div>`).join("");
+  $("food").value = state.food; $("foodv").textContent = "food " + state.food; $("lh").setAttribute("aria-pressed", state.lh);
+}
+const codeOf = () => `${state.food}${state.lh ? "H" : ""} ${state.pat.map(v => chr[v]).join("")}`;
+function syncCode() { $("code").value = codeOf(); $("code").style.borderColor = ""; renderSlots(); }
+function parseCode(s) { const m = s.trim().match(/^(\d{1,2})(h?)\s+([+0-]{10})$/i); if (!m || +m[1] > 20) return false; state.food = +m[1]; state.lh = !!m[2]; state.pat = [...m[3]].map(c => sym[c]); renderSlots(); return true; }
+$("code").addEventListener("input", e => { state.ctx = null; e.target.style.borderColor = parseCode(e.target.value) ? "" : "var(--down)"; });
+$("slots").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; const i = +b.dataset.i, v = +b.dataset.v; state.pat[i] = state.pat[i] === v ? 0 : v; state.ctx = null; syncCode(); });
+$("food").addEventListener("input", e => { state.food = +e.target.value; state.ctx = null; syncCode(); });
+$("lh").addEventListener("click", () => { state.lh = !state.lh; state.ctx = null; syncCode(); });
+$("mUntil").addEventListener("click", () => setMode(false)); $("mFirst").addEventListener("click", () => setMode(true));
+function setMode(f) { state.first = f; $("mUntil").setAttribute("aria-selected", !f); $("mFirst").setAttribute("aria-selected", f); }
+function parseBound(s) { const m = s.trim().match(/^(\d+):(\d{1,2}):(\d{1,2})(?:\|(\d{1,2}))?$/); if (m) return ((+m[1] * 60 + +m[2]) * 60 + +m[3]) * 20 + +(m[4] || 0); return /^\d+$/.test(s.trim()) ? +s.trim() : null; }
+function runCrack() {
+  const max = parseBound($("bound").value); if (max === null) { $("bound").style.borderColor = "var(--down)"; return; }
+  $("bound").style.borderColor = "";
+  const res = crack(state.food, state.pat, state.lh, max, state.first ? 1 : 500);
+  $("cres").hidden = false; $("rcount").textContent = res.length === 1 ? "1 match" : `${res.length} matches`;
+  $("rscan").textContent = state.first && res.length ? "stopped at first match" : `scanned to ${max} ticks`;
+  $("rctx").hidden = !state.ctx; if (state.ctx) $("rctx").textContent = `From the scan: video ${vtime(state.ctx.frame / fps())}, scan says tick ${state.ctx.gt}`;
+  $("matches").innerHTML = res.map(t => `<span class="match ${state.ctx && t === state.ctx.gt ? "fit" : ""}">${hms(t)} (${t} ticks)</span>`).join("") || `<span class="hint">No tick up to the bound gives this pattern. Check the food level, LH and each slot.</span>`;
+}
+$("crackBtn").addEventListener("click", runCrack);
+$("code").addEventListener("keydown", e => { if (e.key === "Enter") runCrack(); });
+
+// ---------- import jolts (view only) ----------
+function parseCSV(text) { const lines = text.split(/\r?\n/).filter(l => l.trim()); const head = lines.shift().split(",").map(h => h.trim().toLowerCase()); return lines.map(l => { const v = l.split(","); const o = {}; head.forEach((h, i) => o[h] = (v[i] ?? "").trim()); return o; }); }
+$("importFile").addEventListener("change", async e => {
+  const files = [...e.target.files]; e.target.value = ""; if (!files.length) return;
+  const rows = [];
+  try {
+    for (const f of files) {
+      const text = await f.text();
+      const recs = /^\s*[\[{]/.test(text) ? [].concat(JSON.parse(text).points ?? JSON.parse(text)) : parseCSV(text);
+      for (const r of recs) {
+        const pat = String(r.pattern ?? "").trim(), food = +r.food; if (!/^[+0-]{10}$/.test(pat) || !(food >= 0 && food <= 20)) continue;
+        const frame = r.frame !== undefined && r.frame !== "" ? Math.round(+r.frame) : Math.round(+r.video_tick * fps() / 20); if (!Number.isFinite(frame)) continue;
+        let lh = null; if ((r.low_health ?? "") !== "") lh = +r.low_health === 1; else if ((r.hp ?? "") !== "" && +r.hp > 0) lh = +r.hp <= 4;
+        let cands = [];
+        if ((r.game_tick ?? "") !== "") cands = [[+r.game_tick, !!lh]];
+        else cands = [...String(r.game_ticks || "").split(/\s+/).filter(Boolean).map(t => [+t, false]), ...String(r.low_health_ticks || "").split(/\s+/).filter(Boolean).map(t => [+t, true])];
+        if (!cands.length) { const p = [...pat].map(c => sym[c]); if (lh !== true) cands.push(...crack(food, p, false, 1728000, 3).map(t => [t, false])); if (lh !== false) cands.push(...crack(food, p, true, 1728000, 3).map(t => [t, true])); }
+        rows.push({ frame, vt: Math.round(frame / fps() * 20), food, pat, cands });
+      }
+    }
+    if (!rows.length) throw new Error("No jolts found. Rows need food, a 10-character pattern and a frame or video_tick.");
+    const res = analyzeRows(rows, fps());
+    res.start = Math.min(...rows.map(r => r.frame)) / fps(); res.end = Math.max(...rows.map(r => r.frame)) / fps() + 1;
+    imported = true; $("importNote").hidden = false; $("backImported").hidden = false;
+    $("importNote").textContent = `Showing ${files.map(f => f.name).join(", ")}: ${rows.length} jolts read, ${res.points.length} confirmed. Statuses cannot be changed here.`;
+    view = null; showResult(res);
+  } catch (err) { $("importNote").hidden = false; $("importNote").textContent = err.message; }
+});
+$("backImported").addEventListener("click", () => { imported = false; $("importNote").hidden = true; $("backImported").hidden = true; view = null; showResult(P.result); });
+
+// ---------- scanner updates from Tick Studio ----------
+// the app checks on launch; offline or up to date shows nothing. "Not now" lasts until the app is opened again.
+const UPD_SKIP = "joltscan.updateNotNow";
+async function updatePoll(tries = 0) {
+  let u;
+  try { u = await api("/api/update"); } catch (e) { return; }
+  const b = $("updBanner"), txt = $("updText"), btns = $("updBtns");
+  let skipped = null; try { skipped = sessionStorage.getItem(UPD_SKIP); } catch (e) {}
+  b.classList.toggle("bad", u.state === "failed" || u.state === "incompatible");
+  if (u.state === "checking" || u.state === "idle") { if (tries < 30) setTimeout(() => updatePoll(tries + 1), 2000); return; }
+  if (u.state === "available" && skipped !== u.commit) {
+    const when = u.date ? new Date(u.date).toLocaleDateString() : "";
+    txt.innerHTML = `<b>Scanner update available.</b> Tick Studio changed ${u.changed.length} file${u.changed.length === 1 ? "" : "s"} the scanner uses (${esc(u.title)}, ${when}).<span class="hint">The new scanner is built and tested before it replaces the current one. If anything fails, nothing changes.</span>`;
+    btns.innerHTML = `<a class="btn" href="${esc(u.url)}" target="_blank" rel="noopener">What changed</a><button id="updLater">Not now</button><button class="primary" id="updGo">Update</button>`;
+    b.hidden = false;
+    $("updLater").onclick = () => { try { sessionStorage.setItem(UPD_SKIP, u.commit); } catch (e) {} b.hidden = true; };
+    $("updGo").onclick = async () => {
+      try { await api("/api/update/install", {}); updatePoll(); }
+      catch (e) { txt.textContent = e.message; b.classList.add("bad"); }
+    };
+  } else if (u.state === "installing") {
+    txt.innerHTML = `<b>Updating the scanner…</b> ${esc(u.step)}<span class="hint">You can keep using the app. Building takes about a minute.</span>`;
+    btns.innerHTML = ""; b.hidden = false;
+    setTimeout(updatePoll, 1500);
+  } else if (u.state === "installed") {
+    txt.innerHTML = `<b>Scanner updated</b> to Tick Studio ${esc(u.commit)}. ${esc(u.message)}`;
+    btns.innerHTML = `<button id="updOk">OK</button>`; b.hidden = false;
+    $("updOk").onclick = () => { b.hidden = true; };
+  } else if (u.state === "failed" || (u.state === "incompatible" && skipped !== u.commit)) {
+    txt.innerHTML = `<b>${u.state === "failed" ? "Scanner update not installed." : "Scanner update needs work."}</b> ${esc(u.message)}`;
+    btns.innerHTML = `<button id="updOk">OK</button>`; b.hidden = false;
+    $("updOk").onclick = () => { try { sessionStorage.setItem(UPD_SKIP, u.commit); } catch (e) {} b.hidden = true; };
+  } else b.hidden = true;
+}
+
+renderSlots(); route(); updatePoll();
+</script>
+</body>
+</html>

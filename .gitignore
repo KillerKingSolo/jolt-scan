@@ -1,0 +1,14 @@
+# your videos and scans
+projects/
+# build output
+app/tscli/target/
+app/tscli/target-update/
+app/tscli_update/
+__pycache__/
+# Tick Studio files, fetched by app/setup_scanner.py (no upstream license; Minecraft textures)
+app/tscli/src/rand.rs
+app/tscli/src/points.rs
+app/tscli/src/process.rs
+app/tscli/assets/
+# local install state
+app/tscli/upstream.json

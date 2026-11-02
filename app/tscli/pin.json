@@ -1,0 +1,13 @@
+{
+ "commit": "b371280d8b40f044f7d75a6a6a4fae6837c6c781",
+ "title": "bbox selection, more speed, accuracy, QOL, removed GPU",
+ "date": "2026-10-16T22:02:31.000+02:00",
+ "blobs": {
+  "src/cracker/rand.rs": "3eb33b21a4a07bcab07a3e08b3f4d495aea936dd",
+  "src/scanner/points.rs": "a024ab4b3fbee8d9d539c50a908258d8f057fead",
+  "src/scanner/process.rs": "c43d06b823f385b78dd472b060affa5fcbeb1786",
+  "assets/food.png": "08484df8ba97de52a1d87347955960580bb9024e",
+  "assets/food_half.png": "dad8a7cb6867b92ef9f10a78ffc60c1a2f03b6d7",
+  "assets/food_empty.png": "eb7042601be023f5e75ebca5c5b64790667a12e0"
+ }
+}

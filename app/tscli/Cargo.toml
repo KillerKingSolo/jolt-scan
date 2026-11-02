@@ -1,0 +1,12 @@
+[package]
+name = "tscli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[profile.release]
+opt-level = 3
+# Java int math wraps; keep it so in case upstream rand.rs uses plain + and -
+overflow-checks = false
